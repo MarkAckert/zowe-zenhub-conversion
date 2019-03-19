@@ -10,8 +10,8 @@ import * as fs from "fs";
 
 export class GithubApis {
 
-    return new Promise<GithubRepository[]>((resolve, reject) => {
-        public static getZoweRepositories(): Promise<GithubRepository[]> {
+    public static getZoweRepositories(): Promise<GithubRepository[]> {
+        return new Promise<GithubRepository[]>((resolve, reject) => {
             GithubApis.apiClient.paginate(`/orgs/zowe/repos`).then((response: Octokit.ReposListForOrgResponse) => {
                 if (response.length > 0) {
                     const repoList: GithubRepository[] = [];

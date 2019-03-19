@@ -30,7 +30,7 @@ export class ConversionDriver {
 
     private convert(issue: WaffleIssue) {
         if (issue instanceof WaffleEpic) {
-            this.convertToEpic(issue as WaffleEpic);
+            this.apis.convertToEpic(issue as WaffleEpic);
         }
         else {
             this.moveIssuePipeline(issue);
@@ -39,7 +39,7 @@ export class ConversionDriver {
 
     private convertToEpic(issue: WaffleEpic) {
         // do conversion then
-        apis
+        this.apis.convertToEpic(issue);
         this.moveIssuePipeline(issue);
     }
 
