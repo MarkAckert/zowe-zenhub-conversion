@@ -6,11 +6,12 @@ import { WaffleIssue, WaffleIssueBuilder } from "../waffle/WaffleIssue";
 import { GithubRepository } from "./GithubRepository";
 import { IGithubFunction } from "./IGithubFunction";
 import { IPromiseHandler } from "./IPromiseHandler";
+import * as fs from "fs";
 
 export class GithubApis {
 
-    public static getZoweRepositories(): Promise<GithubRepository[]> {
-        return new Promise<GithubRepository[]>((resolve, reject) => {
+    return new Promise<GithubRepository[]>((resolve, reject) => {
+        public static getZoweRepositories(): Promise<GithubRepository[]> {
             GithubApis.apiClient.paginate(`/orgs/zowe/repos`).then((response: Octokit.ReposListForOrgResponse) => {
                 if (response.length > 0) {
                     const repoList: GithubRepository[] = [];
@@ -47,11 +48,12 @@ export class GithubApis {
         });
     }
 
+    private static API_TOKEN = fs.readFileSync("resources/github_token.txt").toString();
     private static API_CONCURRENCY = 5;
     private static apiQueue = async.queue(GithubApis.apiWrapper, GithubApis.API_CONCURRENCY);
     private static apiClient: Octokit = new Octokit({
         auth() {
-            return "Basic ***REMOVED***";
+            return "Authentication: token " + GithubApis.API_TOKEN;
         }
     });
 
