@@ -1,0 +1,29 @@
+{
+  "name": "zenhub_conversion",
+  "version": "0.0.1",
+  "description": "Converts Waffle Issues to Zenhub Issues",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "author": "Mark.Ackert@broadcom.com",
+  "license": "EPL-2.0",
+  "private": true,
+  "dependencies": {
+    "@octokit/rest": "^16.17.0",
+    "async": "^2.6.2",
+    "cross-spawn": "^6.0.5",
+    "http-status-codes": "^1.3.1",
+    "tslint": "^5.13.1",
+    "typescript": "^3.3.3333"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "tsc --pretty && tslint --format stylish -c ./tslint-packages.json \"src/**/*.ts\"",
+    "dryrun": "yarn build && node lib/index.js"
+  },
+  "devDependencies": {
+    "@types/async": "^2.4.1",
+    "@types/node": "^11.11.2"
+  }
+}
