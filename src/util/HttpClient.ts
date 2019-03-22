@@ -1,58 +1,123 @@
-import * as https from "https";
-import * as http from "http";
 import * as fs from "fs";
-import { HttpResponse } from "./HttpResponse";
+import * as http from "http";
+import * as https from "https";
 import { isNullOrUndefined } from "util";
-
+import { HttpResponse } from "./HttpResponse";
+import * as async from "async";
+import { createVerify } from "crypto";
+// tslint:disable
 export class HttpClient {
 
-    private zenhubPublicApi = "https://api.zenhub.io";
-    private zenhubToken = fs.readFileSync("resources/zenhub_token.txt").toString();
-    private authHeader: http.OutgoingHttpHeaders = { "X-Authentication-Token": `${this.zenhubToken}` };
+    private static zenhubPublicApi = "https://api.zenhub.io";
+    private static zenhubToken = fs.readFileSync("resources/zenhub_token.txt").toString();
+    private static authHeader: http.OutgoingHttpHeaders = { "X-Authentication-Token": `${HttpClient.zenhubToken}` };
+
+    private apiPostQueue = async.queue(this.apiPostWrapper, 1);
+    private apiGetQueue = async.queue(this.apiGetWrapper, 1);
+
+    constructor(){
+        this.apiPostQueue.drain = () => {
+            console.log("All POST Requests Complete");
+        }
+        this.apiGetQueue.drain = () => {
+            console.log("All GET Requests Complete");
+        }
+    }
+
+    private apiGetWrapper(args: HttpAsyncArgs, cb: (error: any, val?: any) => void): void {
+        const httpArgs: http.ClientRequestArgs = {
+            ...{ method: "GET", headers: args.authHeader }
+        };
+        const req = https.request(`${HttpClient.zenhubPublicApi}${args.url}`, httpArgs, (response) => {
+            let respBody: string = "";
+            response.on("data", (chunk) => {
+                if (!isNullOrUndefined(chunk)) {
+                    respBody += chunk.toString();
+                }
+            });
+            response.on("end", () => {
+                args.resolve({
+                    status: response.statusCode,
+                    body: respBody,
+                    bodyJSON: HttpClient.tryParseJSON(respBody)
+                });
+                cb(null, "Done with " + args);
+
+            });
+        });
+
+        req.on("error", (error) => {
+            args.reject(error);
+            cb(error, null);
+        });
+        req.end();
+    }
+
+    private apiPostWrapper(args: HttpAsyncArgs, cb: (error: any, val?: any) => void): void {
+        if (isNullOrUndefined(HttpClient.tryParseJSON(args.body))) {
+            throw new Error("Incorrectly formatted JSON body string provided.");
+        }
+        const postHeaders: http.OutgoingHttpHeaders = {
+            ...args.authHeader,
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(args.body)
+        };
+        const httpArgs: http.ClientRequestArgs = {
+            method: "POST", headers: postHeaders,
+        };
+        const req = https.request(`${HttpClient.zenhubPublicApi}${args.url}`, httpArgs, (response) => {
+            let respBody: string = "";
+            response.on("data", (chunk) => {
+                if (!isNullOrUndefined(chunk)) {
+                    respBody += chunk.toString();
+                }
+            });
+            response.on("end", () => {
+                args.resolve({
+                    status: response.statusCode,
+                    body: respBody,
+                    bodyJSON: HttpClient.tryParseJSON(respBody)
+                });
+                cb(null, "Done with " + args);
+            });
+        });
+        req.on("error", (error) => {
+            args.reject(error);
+            cb(error, null);
+        });
+        req.write(args.body);
+        req.end();
+    }
 
     public get(url: string): Promise<HttpResponse> {
         return new Promise<HttpResponse>((resolve, reject) => {
-            const httpArgs: http.ClientRequestArgs = {
-                ...{ method: "GET", headers: this.authHeader }
-            };
-            const req = https.request(`${this.zenhubPublicApi}${url}`, httpArgs, (response) => {
-                let respBody: string = "";
-                response.on("data", (chunk) => {
-                    if (!isNullOrUndefined(chunk)) {
-                        respBody += chunk.toString();
-                    }
-                });
-                response.on("end", () => {
-                    resolve({
-                        status: response.statusCode,
-                        body: respBody,
-                        bodyJSON: this.tryParseJSON(respBody)
-                    });
-                });
+            this.apiGetQueue.push({
+                url: url,
+                resolve: resolve,
+                reject: reject,
+                authHeader: HttpClient.authHeader
+            }, (error, result) => {
+                console.log(error);
             });
-
-            req.on("error", (error) => {
-                reject(error);
-            });
-            req.end();
         });
     }
 
-    public post(args: http.ClientRequestArgs): Promise<http.IncomingMessage> {
-        return new Promise<http.IncomingMessage>((resolve, reject) => {
-            const httpArgs: http.ClientRequestArgs = {
-                ...args,
-                ...{ method: "POST", headers: this.authHeader }
-            };
-            https.request(httpArgs, (response: http.IncomingMessage) => {
-
-                resolve(response);
+    public post(url: string, body: string): Promise<HttpResponse> {
+        return new Promise<HttpResponse>((resolve, reject) => {
+            this.apiPostQueue.push({
+                url: url,
+                body: body,
+                resolve: resolve,
+                reject: reject,
+                authHeader: HttpClient.authHeader
+            }, (error, result) => {
+                console.log(error);
             });
-
         });
     }
 
-    private tryParseJSON(jsonString: string) {
+
+    private static tryParseJSON(jsonString: string) {
         try {
             const o = JSON.parse(jsonString);
 
@@ -68,4 +133,12 @@ export class HttpClient {
         }
         return null;
     }
+}
+
+type HttpAsyncArgs = {
+    url: string,
+    body?: string,
+    resolve: Function,
+    reject: Function,
+    authHeader: http.OutgoingHttpHeaders
 }

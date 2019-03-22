@@ -9,14 +9,18 @@ import { ZenhubApis } from "./zenhub/ZenhubApis";
 // tslint:disable
 /*
 let zoweRepos: string[];
-*//*
+*/
+/*
 const PARALLEL_CONVERSION_LIMIT: number = 3;
 GithubApis.getZoweRepositories().then((repoList: GithubRepository[]) => {
-    async.forEachLimit(repoList, PARALLEL_CONVERSION_LIMIT, (repo) => {
-        if (repo.name === "zowe-install-packaging") {
+    repoList.forEach((repo) => {
+        console.log(repo.name);
+        if (repo.name === "zowe-install-test") {
             GithubApis.getIssuesInZoweRepository(repo.name).then((issues: WaffleIssue[]) => {
                 const convertRepo: ConversionDriver = new ConversionDriver(repo);
-                convertRepo.convertWaffleIssues(issues);
+                convertRepo.convertWaffleIssues(issues).then((result) => {
+
+                });
             }).catch((error: any) => {
                 console.log(error);
                 throw new Error(error);
@@ -34,13 +38,17 @@ GithubApis.getZoweRepositories().then((repoList: GithubRepository[]) => {
     throw new Error(error);
 });
 */
-
-const apis = new ZenhubApis();
-apis.getBoardColumns(144592776);
 /*
-GithubApis.getIssuesInZoweRepository("api-layer").then((result) => {
-    console.log(result);
-}).catch((error) => {
-    console.log("ERROR: " + error);
-});
-*/
+const apis = new ZenhubApis();
+apis.populateBoardColumns("zowe/zlc").then((result) => {
+    console.log(apis.PIPELINE_NAMES);
+});*/
+GithubApis.getIssuesInZoweRepository("zowe-install-packaging").then((issues: WaffleIssue[]) => {
+    const convertRepo: ConversionDriver = new ConversionDriver({ id: undefined, name: "zowe-install-packaging", org: "zowe" });
+    convertRepo.convertWaffleIssues(issues).then((result) => {
+        console.log("Issues done conversion");
+    });
+}).catch((error: any) => {
+    console.log(error);
+    throw new Error(error);
+})

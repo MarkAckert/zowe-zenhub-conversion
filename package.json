@@ -20,7 +20,7 @@
   },
   "scripts": {
     "build": "tsc --pretty && tslint --format stylish -c ./tslint-packages.json \"src/**/*.ts\"",
-    "dryrun": "yarn build && node lib/index.js"
+    "dryrun": "yarn build && node lib/index.js 2>&1 | tee convert_log.txt"
   },
   "devDependencies": {
     "@types/async": "^2.4.1",

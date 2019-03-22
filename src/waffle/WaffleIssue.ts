@@ -1,4 +1,5 @@
-import { url } from "inspector";
+import * as Octokit from "@octokit/rest";
+import { WaffleColumns } from "./WaffleColumns";
 // tslint:disable
 export class WaffleIssueBuilder {
 
@@ -6,8 +7,9 @@ export class WaffleIssueBuilder {
     private url: string;
     private id: number;
     private issueNumber: number;
-    private labels: any[];
+    private labels: Octokit.IssuesListResponseItemLabelsItem[];
     private issueBody: string;
+    private waffleColumn: string;
 
     constructor(issueRepository: string) {
         this.repository = issueRepository;
@@ -49,8 +51,11 @@ export class WaffleIssueBuilder {
         return this.labels;
     }
 
-    setIssueLabels(issueLabels: any[]) {
+    setIssueLabels(issueLabels: Octokit.IssuesListResponseItemLabelsItem[]) {
         this.labels = issueLabels;
+        for (let aLabel of issueLabels) {
+            this.waffleColumn = Object.values(WaffleColumns).includes(aLabel.name.trim().toLowerCase()) ? aLabel.name.trim() : null;
+        }
         return this;
     }
 
@@ -61,6 +66,10 @@ export class WaffleIssueBuilder {
     setIssueBody(issueBody: string) {
         this.issueBody = issueBody;
         return this;
+    }
+
+    get WaffleColumn(): string {
+        return this.waffleColumn;
     }
 
     build(): WaffleIssue {
@@ -75,7 +84,8 @@ export class WaffleIssue {
     private url: string;
     private id: number;
     private issueNumber: number;
-    private labels: any[];
+    private labels: Octokit.IssuesListResponseItemLabelsItem[];
+    private waffleColumn: string;
     private commentsUrl: string;
     private issueBody: string;
 
@@ -86,6 +96,7 @@ export class WaffleIssue {
         this.issueNumber = builder.IssueNumber;
         this.labels = builder.IssueLabels;
         this.issueBody = builder.IssueBody;
+        this.waffleColumn = builder.WaffleColumn;
     }
 
     get Repository(): string {
@@ -110,6 +121,10 @@ export class WaffleIssue {
 
     get IssueBody(): string {
         return this.issueBody;
+    }
+
+    get WaffleColumn(): string {
+        return this.waffleColumn;
     }
 
     public toString = (): string => {

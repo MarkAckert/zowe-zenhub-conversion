@@ -1,5 +1,5 @@
 export type HttpResponse = {
     status?: number;
     body?: string;
-    bodyJSON?: object;
+    bodyJSON?: any;
 };

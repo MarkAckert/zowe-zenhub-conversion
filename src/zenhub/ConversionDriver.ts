@@ -6,6 +6,7 @@ import { GithubRepository } from "../github/GithubRepository";
 // tslint:disable
 export class ConversionDriver {
 
+    private repoOrg: string;
     private repoName: string;
     private repoId: number;
     private apis: ZenhubApis;
@@ -13,7 +14,8 @@ export class ConversionDriver {
     constructor(repository: GithubRepository) {
         this.repoName = repository.name;
         this.repoId = repository.id;
-        this.apis = new ZenhubApis();
+        this.repoOrg = repository.org;
+        this.apis = new ZenhubApis(this.repoName);
     }
 
     /**
@@ -30,21 +32,20 @@ export class ConversionDriver {
 
     private convert(issue: WaffleIssue) {
         if (issue instanceof WaffleEpic) {
-            this.apis.convertToEpic(issue as WaffleEpic);
+            this.apis.convertToEpic(issue as WaffleEpic).then((result) => {
+                console.log(issue.IssueNumber + ":" + result);
+                this.moveIssuePipeline(issue);
+            });
         }
         else {
             this.moveIssuePipeline(issue);
         }
     }
 
-    private convertToEpic(issue: WaffleEpic) {
-        // do conversion then
-        this.apis.convertToEpic(issue);
-        this.moveIssuePipeline(issue);
-    }
-
     private moveIssuePipeline(issue: WaffleIssue) {
-
+        this.apis.moveIssuePipeline(issue).then((result) => {
+            console.log(`Moved Issue #${issue.IssueNumber}? : ${result}`);
+        });
     }
 
 }

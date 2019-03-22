@@ -17,7 +17,8 @@ export class GithubApis {
                     const repoList: GithubRepository[] = [];
                     for (const repoData of response) {
                         // tslint:disable-next-line
-                        repoList.push( { name: repoData.full_name, id: repoData.id });
+                        GithubApis.REPO_ID_CACHE[repoData.full_name] = repoData.id;
+                        repoList.push({ org: "zowe", name: repoData.name, id: repoData.id });
                     }
                     resolve(repoList);
                 }
@@ -27,6 +28,38 @@ export class GithubApis {
             }).catch((rejected: any) => {
                 throw new Error(rejected);
             });
+        });
+    }
+
+    public static getZoweRepositoryId(repository: string): Promise<number> {
+        return new Promise<number>((resolve, reject) => {
+            let repoFullName: string;
+            if (!repository.includes("zowe/")) {
+                repoFullName = "zowe/" + repository;
+            }
+            else {
+                repoFullName = repository;
+            }
+
+            if (GithubApis.REPO_ID_CACHE[repoFullName]) {
+                resolve(GithubApis.REPO_ID_CACHE[repoFullName]);
+            }
+            console.log(repoFullName);
+            const gitApiHandler: IPromiseHandler<number> = {
+                then(rawResponse: Octokit.ReposGetResponse[]) {
+                    GithubApis.REPO_ID_CACHE[repoFullName] = rawResponse[0].id;
+                    resolve(rawResponse[0].id);
+                },
+                catch(error: any) {
+                    reject(error);
+                }
+            };
+            const gitFunction: IGithubFunction = {
+                githubFunction: GithubApis.apiClient.paginate,
+                githubArgs: `/repos/${repoFullName}`,
+                promiseHandler: gitApiHandler
+            };
+            GithubApis.apiQueue.push(gitFunction);
         });
     }
 
@@ -48,13 +81,12 @@ export class GithubApis {
         });
     }
 
+    private static REPO_ID_CACHE: { [name: string]: number } = {};
     private static API_TOKEN = fs.readFileSync("resources/github_token.txt").toString();
     private static API_CONCURRENCY = 5;
     private static apiQueue = async.queue(GithubApis.apiWrapper, GithubApis.API_CONCURRENCY);
     private static apiClient: Octokit = new Octokit({
-        auth() {
-            return "Authentication: token " + GithubApis.API_TOKEN;
-        }
+        auth: `token ${GithubApis.API_TOKEN}`
     });
 
     private static apiWrapper(fn: IGithubFunction, cb: (error: any, val?: any) => void): void {
@@ -100,12 +132,12 @@ export class GithubApis {
                     }
                 }
                 if (childIssues.length > 0) {
-                    cb(null, new WaffleEpicBuilder(issue.repository_url).setChildren(childIssues).
+                    cb(null, new WaffleEpicBuilder(issue.repository_url.split("repos/zowe/")[1]).setChildren(childIssues).
                         setId(issue.id).setIssueBody(issue.body).setIssueLabels(issue.labels).setIssueNumber(issue.number)
                         .setUrl(issue.url).build());
                 }
                 else {
-                    cb(null, new WaffleIssueBuilder(issue.repository_url).
+                    cb(null, new WaffleIssueBuilder(issue.repository_url.split("repos/zowe/")[1]).
                         setId(issue.id).setIssueBody(issue.body).setIssueLabels(issue.labels).setIssueNumber(issue.number)
                         .setUrl(issue.url).build());
                 }
