@@ -116,7 +116,7 @@ export class HttpClient {
         });
     }
 
-
+    // From Stackoverflow
     private static tryParseJSON(jsonString: string) {
         try {
             const o = JSON.parse(jsonString);

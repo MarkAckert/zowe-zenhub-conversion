@@ -1,7 +1,8 @@
-import { WaffleEpic } from "../waffle/WaffleEpic";
+import { WaffleEpic, WaffleEpicBuilder } from "../waffle/WaffleEpic";
 import { WaffleIssue } from "../waffle/WaffleIssue";
 import { ZenhubApis } from "./ZenhubApis";
 import { GithubRepository } from "../github/GithubRepository";
+import { isNullOrUndefined } from "util";
 
 // tslint:disable
 export class ConversionDriver {
@@ -24,8 +25,27 @@ export class ConversionDriver {
     public convertWaffleIssues(issues: WaffleIssue[]): Promise<string> {
 
         return new Promise<string>((resolve, reject) => {
+            const updateMap: any = {}
             issues.forEach((issue: WaffleIssue) => {
-                this.convert(issue);
+                if (!isNullOrUndefined(issue.ParentIssues)) {
+                    console.log("Parent issues: " + issue.ParentIssues);
+                    for (const pIssues of issue.ParentIssues) {
+                        const issueNumber = `${pIssues.split("#")[1]}`;
+                        if (isNullOrUndefined(updateMap[issueNumber])) {
+                            updateMap[issueNumber] = [];
+                        }
+                        updateMap[issueNumber].push(`zowe/${issue.Repository}#${issue.IssueNumber}`);
+                    }
+                }
+            });
+            issues.forEach((issue: WaffleIssue) => {
+                if (!isNullOrUndefined(updateMap[`${issue.IssueNumber}`])) {
+                    const epicIssue: WaffleEpic = WaffleEpicBuilder.from(issue).setChildren(updateMap[`${issue.IssueNumber}`]).build();
+                    this.convert(epicIssue);
+                }
+                else {
+                    this.convert(issue);
+                }
             });
         });
     }
@@ -44,7 +64,7 @@ export class ConversionDriver {
 
     private moveIssuePipeline(issue: WaffleIssue) {
         this.apis.moveIssuePipeline(issue).then((result) => {
-            console.log(`Moved Issue #${issue.IssueNumber}? : ${result}`);
+           //  console.log(`Moved Issue #${issue.IssueNumber}? : ${result}`);
         });
     }
 

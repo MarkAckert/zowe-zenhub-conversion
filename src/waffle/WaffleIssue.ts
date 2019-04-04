@@ -10,6 +10,7 @@ export class WaffleIssueBuilder {
     private labels: Octokit.IssuesListResponseItemLabelsItem[];
     private issueBody: string;
     private waffleColumn: string;
+    private parentIssues: string[];
 
     constructor(issueRepository: string) {
         this.repository = issueRepository;
@@ -68,6 +69,15 @@ export class WaffleIssueBuilder {
         return this;
     }
 
+    get ParentIssues(): string[] {
+        return this.parentIssues;
+    }
+
+    setParentIssues(parentIssues: string[]) {
+        this.parentIssues = parentIssues;
+        return this;
+    }
+
     get WaffleColumn(): string {
         return this.waffleColumn;
     }
@@ -88,6 +98,7 @@ export class WaffleIssue {
     private waffleColumn: string;
     private commentsUrl: string;
     private issueBody: string;
+    private parentIssues: string[];
 
     constructor(builder: WaffleIssueBuilder) {
         this.repository = builder.Repository;
@@ -97,6 +108,7 @@ export class WaffleIssue {
         this.labels = builder.IssueLabels;
         this.issueBody = builder.IssueBody;
         this.waffleColumn = builder.WaffleColumn;
+        this.parentIssues = builder.ParentIssues;
     }
 
     get Repository(): string {
@@ -125,6 +137,10 @@ export class WaffleIssue {
 
     get WaffleColumn(): string {
         return this.waffleColumn;
+    }
+
+    get ParentIssues(): string[] {
+        return this.parentIssues;
     }
 
     public toString = (): string => {

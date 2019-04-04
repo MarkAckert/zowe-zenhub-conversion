@@ -103,32 +103,60 @@ export class GithubApis {
         const gitApiHandler: IPromiseHandler<any> = {
             then(rawComments: Octokit.IssuesListCommentsResponse) {
                 const childIssues: string[] = [];
+                const parentIssues: string[] = [];
                 const parentRegex = new RegExp("(?:parent of )(?:([zowe].*?#[0-9]+)|(#[0-9]+))", "gi");
-                let match: RegExpMatchArray = parentRegex.exec(issue.body);
-                while (!isNullOrUndefined(match)) {
-                    if (!isNullOrUndefined(match[1])) {
+                const childRegex = new RegExp("(?:child of )(?:([zowe].*?#[0-9]+)|(#[0-9]+))", "gi");
+                let childMatch: RegExpMatchArray = parentRegex.exec(issue.body);
+                let parentMatch: RegExpMatchArray = childRegex.exec(issue.body);
+                while (!isNullOrUndefined(childMatch)) {
+                    if (!isNullOrUndefined(childMatch[1])) {
                         // format: zowe/repo#issue . No conversion.
-                        childIssues.push(match[1]);
+                        childIssues.push(childMatch[1]);
                     }
-                    else if (!isNullOrUndefined(match[2])) {
+                    else if (!isNullOrUndefined(childMatch[2])) {
                         // format: #issue_num. Covert: zowe/current_repo#issue_num
-                        childIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + match[2]);
+                        childIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + childMatch[2]);
                     }
-                    match = parentRegex.exec(issue.body);
+                    childMatch = parentRegex.exec(issue.body);
+                }
+                while (!isNullOrUndefined(parentMatch)) {
+                    if (!isNullOrUndefined(parentMatch[1])) {
+                        // format: zowe/repo#issue . No conversion.
+                        parentIssues.push(parentMatch[1]);
+                    }
+                    else if (!isNullOrUndefined(parentMatch[2])) {
+                        // format: #issue_num. Covert: zowe/current_repo#issue_num
+                        parentIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + parentMatch[2]);
+                    }
+                    parentMatch = parentRegex.exec(issue.body);
                 }
                 for (const comment of rawComments) {
                     parentRegex.lastIndex = 0;
-                    match = parentRegex.exec(comment.body);
-                    while (!isNullOrUndefined(match)) {
-                        if (!isNullOrUndefined(match[1])) {
+                    childRegex.lastIndex = 0;
+                    childMatch = parentRegex.exec(comment.body);
+                    parentMatch = childRegex.exec(comment.body);
+
+                    while (!isNullOrUndefined(childMatch)) {
+                        if (!isNullOrUndefined(childMatch[1])) {
                             // format: zowe/repo#issue . No conversion.
-                            childIssues.push(match[1]);
+                            childIssues.push(childMatch[1]);
                         }
-                        else if (!isNullOrUndefined(match[2])) {
+                        else if (!isNullOrUndefined(childMatch[2])) {
                             // format: #issue_num. Covert: zowe/current_repo#issue_num
-                            childIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + match[2]);
+                            childIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + childMatch[2]);
                         }
-                        match = parentRegex.exec(comment.body);
+                        childMatch = parentRegex.exec(comment.body);
+                    }
+                    while (!isNullOrUndefined(parentMatch)) {
+                        if (!isNullOrUndefined(parentMatch[1])) {
+                            // format: zowe/repo#issue . No conversion.
+                            parentIssues.push(parentMatch[1]);
+                        }
+                        else if (!isNullOrUndefined(parentMatch[2])) {
+                            // format: #issue_num. Covert: zowe/current_repo#issue_num
+                            parentIssues.push("zowe/" + issue.repository_url.split("repos/zowe/")[1] + parentMatch[2]);
+                        }
+                        parentMatch = parentRegex.exec(issue.body);
                     }
                 }
                 if (childIssues.length > 0) {
@@ -139,7 +167,7 @@ export class GithubApis {
                 else {
                     cb(null, new WaffleIssueBuilder(issue.repository_url.split("repos/zowe/")[1]).
                         setId(issue.id).setIssueBody(issue.body).setIssueLabels(issue.labels).setIssueNumber(issue.number)
-                        .setUrl(issue.url).build());
+                        .setUrl(issue.url).setParentIssues(parentIssues).build());
                 }
             },
             catch(error) { cb(error); }

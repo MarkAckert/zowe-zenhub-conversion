@@ -105,7 +105,7 @@ export class ZenhubApis {
                             break;
                         }
                     }
-                    console.log(`Current issue: ${issue.IssueNumber}; target pipeline: ${targetPipeline}`);
+                    // console.log(`Current issue: ${issue.IssueNumber}; target pipeline: ${targetPipeline}`);
                     if (!isNullOrUndefined(targetPipeline)) {
                         const postBody: any = {
                             "pipeline_id": this.PIPELINE_NAMES[targetPipeline],
@@ -113,10 +113,10 @@ export class ZenhubApis {
                         };
 
                         this.api.post(`/p1/repositories/${repoId}/issues/${issue.IssueNumber}/moves`, JSON.stringify(postBody)).then((result) => {
-                            console.log(`/p1/repositories/${repoId}/issues/${issue.IssueNumber}/moves`);
-                            console.log(JSON.stringify(postBody));
-                            console.log(result.status);
-                            console.log(result.body);
+                          //  console.log(`/p1/repositories/${repoId}/issues/${issue.IssueNumber}/moves`);
+                          //  console.log(JSON.stringify(postBody));
+                          //  console.log(result.status);
+                           // console.log(result.body);
                             resolve(true);
                         });
                     }
